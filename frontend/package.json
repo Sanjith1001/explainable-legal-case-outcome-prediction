@@ -1,0 +1,30 @@
+{
+  "name": "legal-predictor",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "axios": "^1.13.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead"
+    ],
+    "development": [
+      "last 1 chrome version"
+    ]
+  },
+  "proxy": "http://localhost:8000",
+  "devDependencies": {
+    "autoprefixer": "^10.4.27",
+    "playwright": "^1.59.1",
+    "postcss": "^8.5.8"
+  }
+}

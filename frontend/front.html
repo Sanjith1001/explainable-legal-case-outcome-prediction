@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>LegalPredict AI — IIIT Nagpur</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --ink:#0f1117;--cream:#f7f5f0;--gold:#c9973a;--border:#e5e1d8;--muted:#9ca3af;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+    .fade-up{animation:fadeUp .45s ease both}
+    .fade-up-1{animation:fadeUp .45s .1s ease both}
+    .fade-up-2{animation:fadeUp .45s .2s ease both}
+    .fade-up-3{animation:fadeUp .45s .3s ease both}
+
+    nav{background:var(--ink);border-bottom:3px solid var(--gold);padding:16px 40px;display:flex;align-items:center;justify-content:space-between}
+    .nav-left{display:flex;align-items:center;gap:12px}
+    .nav-icon{width:40px;height:40px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+    .nav-title{font-family:'Playfair Display',serif;color:#fff;font-size:20px;font-weight:700}
+    .nav-sub{font-family:'DM Mono',monospace;color:rgba(255,255,255,.35);font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+    .nav-right{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.35)}
+    .dot-green{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:blink 2s infinite}
+
+    main{max-width:960px;margin:0 auto;padding:40px 20px 80px}
+
+    .hero{text-align:center;margin-bottom:40px}
+    .hero h2{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;line-height:1.2;margin-bottom:12px}
+    .hero h2 span{color:var(--gold)}
+    .hero p{color:var(--muted);font-size:14px;max-width:560px;margin:0 auto 16px;line-height:1.7}
+    .tags{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+    .tag{padding:4px 12px;font-size:11px;font-family:'DM Mono',monospace;background:#fff;border:1px solid var(--border);border-radius:999px;color:var(--muted)}
+
+    .card{background:#fff;border-radius:16px;border:1px solid var(--border);padding:24px;box-shadow:0 2px 12px rgba(15,17,23,.06);margin-bottom:24px}
+
+    .tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--cream);border-radius:10px;padding:4px}
+    .tab-btn{flex:1;padding:10px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted)}
+    .tab-btn.active{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+
+    .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .section-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:600}
+    .word-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+    .section-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+
+    textarea{width:100%;height:220px;padding:16px;font-size:13px;font-family:'DM Mono',monospace;background:var(--cream);border:1.5px solid var(--border);border-radius:12px;resize:none;outline:none;color:var(--ink);line-height:1.7;transition:border-color .2s}
+    textarea:focus{border-color:var(--gold)}
+
+    .pdf-zone{border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--cream)}
+    .pdf-zone:hover,.pdf-zone.over{border-color:var(--gold);background:#fdf8f0}
+    .pdf-icon{font-size:40px;margin-bottom:12px}
+    .pdf-title{font-size:15px;font-weight:600;margin-bottom:6px}
+    .pdf-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+    .btn-browse{padding:10px 24px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--ink);cursor:pointer;transition:all .2s}
+    .btn-browse:hover{border-color:var(--gold)}
+    .pdf-ready{display:none;margin-top:12px;padding:12px 16px;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;font-size:13px;color:#166534;align-items:center;gap:8px}
+    #pdfInput{display:none}
+
+    .footer-row{margin-top:16px;display:flex;align-items:center;justify-content:space-between}
+    .hint{font-size:11px;color:#d1d5db}
+    .btn-predict{display:flex;align-items:center;gap:8px;padding:12px 28px;background:var(--ink);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s}
+    .btn-predict:hover{background:#1e2230}
+    .btn-predict:active{transform:scale(.98)}
+    .btn-predict:disabled{background:#d1cfc9;cursor:not-allowed;transform:none}
+    .spinner-sm{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
+
+    .error-box{margin-top:12px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:13px;color:#991b1b;display:none}
+
+    #loading{display:none;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:20px}
+    .spin-wrap{position:relative;width:60px;height:60px}
+    .spin-track{position:absolute;inset:0;border-radius:50%;border:4px solid var(--border)}
+    .spin-ring{position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top-color:var(--gold);animation:spin .9s linear infinite}
+    .load-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:600}
+    .load-sub{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
+    .load-steps{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+    .load-step{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+    .step-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1.2s ease infinite}
+
+    #results{display:none}
+
+    .verdict-card{border-radius:16px;padding:28px;margin-bottom:24px}
+    .verdict-top{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+    .verdict-icon{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:700;flex-shrink:0}
+    .verdict-meta{flex:1}
+    .verdict-eyebrow{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+    .verdict-label{font-family:'Playfair Display',serif;font-size:38px;font-weight:700;line-height:1}
+
+    .conf-row{display:flex;justify-content:space-between;margin-bottom:6px}
+    .conf-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+    .conf-value{font-family:'DM Mono',monospace;font-size:13px;font-weight:600}
+    .bar-track{height:10px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.7)}
+    .bar-fill{height:100%;border-radius:999px;transition:width 1.2s ease}
+
+    .info-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+    .info-pill{padding:5px 12px;border-radius:999px;font-size:11px;font-family:'DM Mono',monospace}
+
+    .explanation-box{background:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.85);border-radius:14px;padding:20px;margin-top:16px}
+    .explanation-eyebrow{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px}
+    .exp-sentences{display:flex;flex-direction:column;gap:10px}
+    .exp-sentence{display:flex;gap:10px;align-items:flex-start}
+    .exp-bullet{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:7px}
+    .exp-text{font-size:14px;color:#374151;line-height:1.75}
+    .exp-warning{background:rgba(254,243,199,.7);border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:13px;color:#92400e;line-height:1.6}
+
+    .uncertainty-banner{background:#fef9ec;border:1.5px solid #f59e0b;border-radius:12px;padding:16px 20px;margin-bottom:24px}
+    .uncertainty-title{font-family:'DM Mono',monospace;font-size:11px;color:#92400e;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+    .uncertainty-text{font-size:13px;color:#78350f;line-height:1.7}
+
+    .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;margin-bottom:24px}
+
+    .panel-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:600;margin-bottom:4px}
+    .panel-sub{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:20px}
+    .kw-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .kw-num{font-family:'DM Mono',monospace;font-size:11px;color:#d1d5db;width:16px;text-align:right}
+    .kw-word{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .kw-bar-track{flex:1;height:20px;background:#f3f4f6;border-radius:6px;overflow:hidden}
+    .kw-bar-fill{height:100%;border-radius:6px;transition:width .6s ease}
+    .kw-arrow{font-size:14px;width:16px;text-align:center}
+    .kw-val{font-family:'DM Mono',monospace;font-size:11px;width:56px;text-align:right}
+    .legend{display:flex;gap:20px;margin-top:16px;padding-top:16px;border-top:1px solid #f3f4f6;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+    .legend-item{display:flex;align-items:center;gap:6px}
+    .legend-sw{width:12px;height:12px;border-radius:3px}
+
+    .cases-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+    .badges{display:flex;gap:6px;flex-wrap:wrap}
+    .badge{padding:4px 10px;border-radius:999px;font-size:11px;font-family:'DM Mono',monospace}
+    .case-item{border-radius:12px;overflow:hidden;margin-bottom:10px}
+    .case-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer}
+    .case-left{display:flex;align-items:center;gap:10px}
+    .case-num{width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--muted)}
+    .case-badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600}
+    .case-sim{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+    .case-body{padding:12px 16px;display:none;font-family:'DM Mono',monospace;font-size:12px;color:#6b7280;line-height:1.7}
+    .cases-hint{text-align:center;margin-top:12px;font-family:'DM Mono',monospace;font-size:11px;color:#d1d5db}
+
+    .rules-card{background:#fff;border-radius:16px;border:1px solid var(--border);padding:24px;margin-bottom:24px}
+    .rule-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f9f8f6}
+    .rule-item:last-child{border-bottom:none}
+    .rule-dir{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .rule-name{font-size:13px;font-weight:500;flex:1}
+    .rule-note{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+    .rule-weight{font-family:'DM Mono',monospace;font-size:11px;min-width:40px;text-align:right}
+
+    /* ── SIMULATOR ── */
+    .simulator-card{background:#fff;border-radius:16px;border:2px solid var(--gold);padding:28px;margin-bottom:24px}
+    .sim-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .sim-icon{width:40px;height:40px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .sim-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700}
+    .sim-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+
+    .sim-chat{display:flex;flex-direction:column;gap:14px;margin-bottom:20px;max-height:460px;overflow-y:auto;padding-right:4px}
+    .sim-chat::-webkit-scrollbar{width:4px}
+    .sim-chat::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+    .chat-msg{display:flex;gap:10px;animation:slideIn .3s ease both}
+    .chat-msg.ai{flex-direction:row}
+    .chat-msg.lawyer{flex-direction:row-reverse}
+
+    .chat-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+    .chat-avatar.ai-av{background:var(--ink);color:var(--gold)}
+    .chat-avatar.law-av{background:var(--gold);color:#fff}
+
+    .chat-bubble{max-width:78%;padding:12px 16px;border-radius:14px;font-size:13px;line-height:1.7}
+    .chat-msg.ai .chat-bubble{background:#f7f5f0;border:1px solid var(--border);border-top-left-radius:4px;color:#374151}
+    .chat-msg.lawyer .chat-bubble{background:var(--ink);color:#fff;border-top-right-radius:4px}
+
+    .chat-meta{font-family:'DM Mono',monospace;font-size:10px;margin-top:6px}
+    .chat-msg.ai .chat-meta{color:var(--muted)}
+    .chat-msg.lawyer .chat-meta{color:rgba(255,255,255,.5);text-align:right}
+
+    .verdict-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-left:6px}
+    .verdict-pill.acc{background:#dcfce7;color:#166534}
+    .verdict-pill.rej{background:#fee2e2;color:#991b1b}
+
+    .sim-input-row{display:flex;gap:10px;align-items:flex-end}
+    .sim-input{flex:1;padding:12px 16px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--cream);border:1.5px solid var(--border);border-radius:12px;outline:none;resize:none;color:var(--ink);line-height:1.6;height:80px;transition:border-color .2s}
+    .sim-input:focus{border-color:var(--gold)}
+    .btn-argue{padding:12px 20px;background:var(--gold);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap}
+    .btn-argue:hover{background:#b8862e}
+    .btn-argue:disabled{background:#d1cfc9;cursor:not-allowed}
+    .sim-hint{font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace}
+
+    .round-counter{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:16px}
+
+    .sim-verdict-track{background:var(--cream);border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid var(--border)}
+    .track-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+    .track-bar-wrap{display:flex;align-items:center;gap:10px}
+    .track-bar-bg{flex:1;height:8px;background:#e5e1d8;border-radius:999px;overflow:hidden}
+    .track-bar-fill{height:100%;border-radius:999px;transition:width .8s ease,background .8s ease}
+    .track-pct{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;min-width:42px;text-align:right}
+    .track-verdict{font-family:'DM Mono',monospace;font-size:11px;margin-top:6px}
+
+    .btn-reset{display:block;margin:0 auto;padding:10px 24px;background:#fff;border:1px solid #d1cfc9;border-radius:12px;font-size:13px;font-family:'DM Mono',monospace;color:#6b7280;cursor:pointer}
+    .btn-reset:hover{background:var(--cream)}
+
+    footer{text-align:center;padding:24px;font-family:'DM Mono',monospace;font-size:11px;color:#d1d5db;border-top:1px solid var(--border);margin-top:20px}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <div class="nav-icon">⚖</div>
+    <div>
+      <div class="nav-title">LegalPredict AI</div>
+      <div class="nav-sub">Indian Supreme Court · 6-Layer AI · IIIT Nagpur</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <span class="dot-green"></span>
+    6 Layers Active · ILDC + InLegalBERT · 45k Cases
+  </div>
+</nav>
+
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h2>Explainable Legal Case<br><span>Outcome Prediction</span></h2>
+    <p>Upload a case, get an AI prediction with SHAP explanations, similar precedents, and legal rules.
+       Then challenge the AI with arguments in the interactive simulator.</p>
+    <div class="tags">
+      <span class="tag">InLegalBERT</span>
+      <span class="tag">XGBoost</span>
+      <span class="tag">FAISS Retrieval</span>
+      <span class="tag">SHAP Explainability</span>
+      <span class="tag">Legal Rule Engine</span>
+      <span class="tag">Argument Simulator</span>
+      <span class="tag">PDF Upload</span>
+    </div>
+  </div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('text')">📝 Paste Case Text</button>
+      <button class="tab-btn"        onclick="switchTab('pdf')">📄 Upload PDF</button>
+    </div>
+
+    <div class="tab-pane active" id="pane-text">
+      <div class="row">
+        <h3 class="section-title">Enter Case Details</h3>
+        <span class="word-count" id="wordCount">0 words</span>
+      </div>
+      <p class="section-sub">Paste the full case description, facts, arguments, or judgment text.</p>
+      <textarea id="caseText"
+        placeholder="Paste your case text here...
+
+Example:
+The appellant challenged the order of the High Court which dismissed the writ petition on
+the ground of maintainability. The respondent contended that the petition was barred by
+limitation and that the High Court had no jurisdiction to interfere with the impugned order..."></textarea>
+    </div>
+
+    <div class="tab-pane" id="pane-pdf">
+      <div class="row" style="margin-bottom:6px">
+        <h3 class="section-title">Upload Case PDF</h3>
+      </div>
+      <p class="section-sub">Upload a text-based PDF of the case judgment or petition.</p>
+      <div class="pdf-zone" id="pdfZone"
+           onclick="document.getElementById('pdfInput').click()"
+           ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div class="pdf-icon">📄</div>
+        <div class="pdf-title">Drop your PDF here or click to browse</div>
+        <div class="pdf-sub">Text-based PDFs only · Max 10 MB</div>
+        <button class="btn-browse" onclick="event.stopPropagation();document.getElementById('pdfInput').click()">Choose PDF</button>
+      </div>
+      <div class="pdf-ready" id="pdfReady">✓ &nbsp;<span id="pdfName"></span>&nbsp;— ready</div>
+      <input type="file" id="pdfInput" accept=".pdf" onchange="onPdfSelected(event)"/>
+    </div>
+
+    <div class="error-box" id="errorBox"></div>
+    <div class="footer-row">
+      <span class="hint" id="hintText">Minimum 50 characters required</span>
+      <button class="btn-predict" id="predictBtn" onclick="predict()">Predict Outcome →</button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div class="spin-wrap"><div class="spin-track"></div><div class="spin-ring"></div></div>
+    <div style="text-align:center">
+      <div class="load-title">Analyzing Case...</div>
+      <div class="load-sub" style="margin-top:6px">Running all 6 layers</div>
+    </div>
+    <div class="load-steps">
+      <div class="load-step"><span class="step-dot" style="animation-delay:0s"></span>Predicting</div>
+      <div class="load-step"><span class="step-dot" style="animation-delay:.2s"></span>Retrieving</div>
+      <div class="load-step"><span class="step-dot" style="animation-delay:.4s"></span>SHAP</div>
+      <div class="load-step"><span class="step-dot" style="animation-delay:.6s"></span>Legal rules</div>
+      <div class="load-step"><span class="step-dot" style="animation-delay:.8s"></span>Consistency</div>
+      <div class="load-step"><span class="step-dot" style="animation-delay:1s"></span>Uncertainty</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <!-- Uncertainty banner -->
+    <div class="uncertainty-banner fade-up" id="uncertaintyBanner" style="display:none">
+      <div class="uncertainty-title">⚠ Low Confidence Warning</div>
+      <div class="uncertainty-text" id="uncertaintyText"></div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="verdict-card fade-up" id="verdictCard">
+      <div class="verdict-top">
+        <div class="verdict-icon" id="verdictIcon"></div>
+        <div class="verdict-meta">
+          <div class="verdict-eyebrow">Predicted Outcome</div>
+          <div class="verdict-label" id="verdictLabel"></div>
+        </div>
+      </div>
+      <div class="conf-row">
+        <span class="conf-label">Confidence Score</span>
+        <span class="conf-value" id="confValue"></span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+      <div class="info-row">
+        <span class="info-pill" id="consistencyPill" style="background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb"></span>
+      </div>
+      <div class="explanation-box">
+        <div class="explanation-eyebrow">AI Explanation</div>
+        <div class="exp-sentences" id="expSentences"></div>
+        <div class="exp-warning" id="expWarning" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Two columns: keywords + similar cases -->
+    <div class="two-col">
+      <div class="card fade-up-1" style="margin-bottom:0">
+        <div class="panel-title">Key Legal Factors</div>
+        <div class="panel-sub">SHAP values — words that most influenced this prediction</div>
+        <div id="kwContainer"></div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-sw" style="background:#bbf7d0"></span>Supports Accepted</div>
+          <div class="legend-item"><span class="legend-sw" style="background:#fecaca"></span>Supports Rejected</div>
+        </div>
+      </div>
+      <div class="card fade-up-2" style="margin-bottom:0">
+        <div class="cases-hd">
+          <div>
+            <div class="panel-title">Similar Past Cases</div>
+            <div class="panel-sub">InLegalBERT · FAISS semantic search</div>
+          </div>
+          <div class="badges" id="casesBadges"></div>
+        </div>
+        <div id="casesContainer"></div>
+        <div class="cases-hint">Click any case to expand</div>
+      </div>
+    </div>
+
+    <!-- Legal rules triggered -->
+    <div class="rules-card fade-up-3" id="rulesCard" style="display:none">
+      <div class="panel-title">Legal Rule Engine</div>
+      <div class="panel-sub">Layer 4 — Domain rules triggered by this case</div>
+      <div id="rulesContainer"></div>
+    </div>
+
+    <!-- ── ARGUMENT SIMULATOR ── -->
+    <div class="simulator-card fade-up-3">
+      <div class="sim-header">
+        <div class="sim-icon">⚔</div>
+        <div>
+          <div class="sim-title">Legal Argument Simulator</div>
+        </div>
+      </div>
+      <p class="sim-sub">
+        Challenge the AI's prediction with legal arguments. The AI will respond with counter-arguments
+        based on Indian law, precedents, and similar cases. Your arguments may shift the predicted outcome.
+      </p>
+
+      <!-- Live verdict tracker -->
+      <div class="sim-verdict-track">
+        <div class="track-label">Live prediction confidence</div>
+        <div class="track-bar-wrap">
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:70px">Rejected</span>
+          <div class="track-bar-bg"><div class="track-bar-fill" id="trackFill"></div></div>
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);width:60px;text-align:right">Accepted</span>
+        </div>
+        <div class="track-verdict" id="trackVerdict"></div>
+      </div>
+
+      <div class="round-counter" id="roundCounter">Round 1 — Make your first argument</div>
+      <div class="sim-chat" id="simChat"></div>
+
+      <div class="sim-input-row">
+        <textarea class="sim-input" id="argInput"
+          placeholder="Type your legal argument here...
+
+Examples:
+- The accused has a strong alibi corroborated by independent witnesses
+- The arrest was illegal — Section 50 CrPC was not followed
+- Evidence is purely circumstantial — benefit of doubt should apply
+- The High Court misapplied the law on this point"></textarea>
+        <button class="btn-argue" id="argBtn" onclick="submitArgument()">Submit →</button>
+      </div>
+      <div class="sim-hint">
+        Tip: Reference specific legal provisions, rights, or evidence issues for stronger arguments
+      </div>
+    </div>
+
+    <button class="btn-reset" onclick="doReset()">↩ Analyze Another Case</button>
+  </div>
+
+</main>
+
+<footer>
+  Explainable Legal Case Outcome Prediction · IIIT Nagpur · 2025 ·
+  6-Layer AI: Prediction + Retrieval + SHAP + Legal Rules + Consistency + Uncertainty
+</footer>
+
+<script>
+  // ── STATE ──
+  let activeTab      = 'text';
+  let selectedFile   = null;
+  let simState       = null; // { verdict, confidence, similarCases, round }
+
+  // ── TABS ──
+  function switchTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      b.classList.toggle('active',(i===0&&tab==='text')||(i===1&&tab==='pdf'));
+    });
+    document.getElementById('pane-text').classList.toggle('active',tab==='text');
+    document.getElementById('pane-pdf').classList.toggle('active',tab==='pdf');
+    document.getElementById('hintText').textContent =
+      tab==='text'?'Minimum 50 characters required':'Select a PDF file to analyze';
+    clearError();
+  }
+
+  document.getElementById('caseText').addEventListener('input',()=>{
+    const w=document.getElementById('caseText').value.trim().split(/\s+/).filter(Boolean).length;
+    document.getElementById('wordCount').textContent=w+' words';
+  });
+
+  // ── PDF ──
+  function onPdfSelected(e){const f=e.target.files[0];if(f)setFile(f);}
+  function setFile(f){selectedFile=f;document.getElementById('pdfName').textContent=f.name;document.getElementById('pdfReady').style.display='flex';}
+  function onDragOver(e){e.preventDefault();document.getElementById('pdfZone').classList.add('over');}
+  function onDragLeave(){document.getElementById('pdfZone').classList.remove('over');}
+  function onDrop(e){e.preventDefault();document.getElementById('pdfZone').classList.remove('over');const f=e.dataTransfer.files[0];if(f&&f.name.toLowerCase().endsWith('.pdf'))setFile(f);else showError('Only PDF files are supported.');}
+
+  // ── PREDICT ──
+  async function predict(){
+    clearError();setLoading(true);
+    try{
+      let data;
+      if(activeTab==='text'){
+        const txt=document.getElementById('caseText').value.trim();
+        if(txt.length<50){showError('Please enter at least 50 characters.');setLoading(false);return;}
+        const res=await fetch('http://localhost:8000/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_text:txt})});
+        if(!res.ok){const e=await res.json();throw new Error(e.detail||'Server error');}
+        data=await res.json();
+      }else{
+        if(!selectedFile){showError('Please select a PDF file.');setLoading(false);return;}
+        const fd=new FormData();fd.append('file',selectedFile);
+        const res=await fetch('http://localhost:8000/predict-pdf',{method:'POST',body:fd});
+        if(!res.ok){const e=await res.json();throw new Error(e.detail||'Server error');}
+        data=await res.json();
+      }
+      renderResults(data);
+    }catch(e){showError(e.message||'Cannot connect to backend on port 8000.');}
+    finally{setLoading(false);}
+  }
+
+  // ── RENDER RESULTS ──
+  function renderResults(data){
+    const isAcc=data.verdict==='ACCEPTED';
+    const pct=(data.confidence*100).toFixed(1);
+    const C=isAcc
+      ?{bg:'#f0fdf4',border:'#86efac',iconBg:'#166534',text:'#166534',bar:'#16a34a'}
+      :{bg:'#fef2f2',border:'#fca5a5',iconBg:'#991b1b',text:'#991b1b',bar:'#dc2626'};
+
+    const card=document.getElementById('verdictCard');
+    card.style.background=C.bg;card.style.border=`2px solid ${C.border}`;
+    document.getElementById('verdictIcon').textContent=isAcc?'✓':'✗';
+    document.getElementById('verdictIcon').style.background=C.iconBg;
+    document.getElementById('verdictLabel').textContent=data.verdict;
+    document.getElementById('verdictLabel').style.color=C.text;
+    document.getElementById('confValue').textContent=pct+'%';
+    document.getElementById('confValue').style.color=C.text;
+    document.getElementById('barFill').style.width=pct+'%';
+    document.getElementById('barFill').style.background=C.bar;
+
+    // Consistency pill
+    const cpill=document.getElementById('consistencyPill');
+    cpill.textContent=data.consistency_status;
+    if(data.consistency_status.includes('Consistent')){cpill.style.background='#dcfce7';cpill.style.color='#166534';cpill.style.border='1px solid #86efac';}
+    else if(data.consistency_status.includes('Inconsistent')){cpill.style.background='#fee2e2';cpill.style.color='#991b1b';cpill.style.border='1px solid #fca5a5';}
+    else{cpill.style.background='#fef9ec';cpill.style.color='#92400e';cpill.style.border='1px solid #fcd34d';}
+
+    // Uncertainty banner
+    if(data.uncertainty_flag){
+      document.getElementById('uncertaintyBanner').style.display='block';
+      document.getElementById('uncertaintyText').textContent=data.uncertainty_message;
+    }else{
+      document.getElementById('uncertaintyBanner').style.display='none';
+    }
+
+    renderExplanation(data.explanation_text,isAcc,C);
+    renderKeywords(data.top_keywords);
+    renderCases(data.similar_cases);
+    renderRules(data.triggered_rules);
+
+    // Init simulator state
+    simState={
+      verdict   :data.verdict,
+      confidence:data.confidence,
+      similarCases:data.similar_cases,
+      round     :1,
+    };
+    initSimulator(data.verdict,data.confidence);
+
+    document.getElementById('results').style.display='block';
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function renderExplanation(text,isAcc,C){
+    const container=document.getElementById('expSentences');
+    const warning=document.getElementById('expWarning');
+    const parts=text.split(/(?<=\.)\s+/).filter(s=>s.trim().length>0);
+    const mainParts=parts.filter(p=>!p.startsWith('Note:'));
+    const notePart=parts.find(p=>p.startsWith('Note:'));
+    container.innerHTML=mainParts.map(s=>`
+      <div class="exp-sentence">
+        <span class="exp-bullet" style="background:${C.iconBg}"></span>
+        <span class="exp-text">${s.trim()}</span>
+      </div>`).join('');
+    if(notePart){warning.textContent='⚠ '+notePart;warning.style.display='block';}
+    else warning.style.display='none';
+  }
+
+  function renderKeywords(kws){
+    const c=document.getElementById('kwContainer');
+    if(!kws||kws.length===0){c.innerHTML='<p style="color:#9ca3af;font-size:13px">No keywords found.</p>';return;}
+    const maxAbs=Math.max(...kws.map(k=>Math.abs(k.shap_value)));
+    c.innerHTML=kws.map((kw,i)=>{
+      const isPos=kw.direction==='supports_accepted';
+      const bw=((Math.abs(kw.shap_value)/maxAbs)*100).toFixed(1);
+      const val=(kw.shap_value>0?'+':'')+kw.shap_value.toFixed(3);
+      return `<div class="kw-row">
+        <span class="kw-num">${i+1}</span>
+        <span class="kw-word" title="${kw.word}">${kw.word}</span>
+        <div class="kw-bar-track"><div class="kw-bar-fill" style="width:${bw}%;background:${isPos?'#bbf7d0':'#fecaca'};transition-delay:${i*.05}s"></div></div>
+        <span class="kw-arrow" style="color:${isPos?'#166534':'#991b1b'}">${isPos?'↑':'↓'}</span>
+        <span class="kw-val" style="color:${isPos?'#166534':'#991b1b'}">${val}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function renderCases(cases){
+    const c=document.getElementById('casesContainer');
+    const b=document.getElementById('casesBadges');
+    if(!cases||cases.length===0){c.innerHTML='';return;}
+    const acc=cases.filter(x=>x.label==='ACCEPTED').length;
+    const rej=cases.length-acc;
+    b.innerHTML=`<span class="badge" style="background:#dcfce7;color:#166534;border:1px solid #86efac">${acc} accepted</span>
+                 <span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5">${rej} rejected</span>`;
+    c.innerHTML=cases.map((x,i)=>{
+      const a=x.label==='ACCEPTED';
+      const sim=(x.similarity*100).toFixed(1);
+      const bg=a?'#f0fdf4':'#fef2f2';
+      const bdr=a?'#86efac':'#fca5a5';
+      const bbg=a?'#dcfce7':'#fee2e2';
+      const btxt=a?'#166534':'#991b1b';
+      const snip=x.text_snippet.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<div class="case-item" style="border:1px solid ${bdr}">
+        <div class="case-hdr" style="background:${bg}" onclick="toggleCase(${i})">
+          <div class="case-left">
+            <div class="case-num">${i+1}</div>
+            <span class="case-badge" style="background:${bbg};color:${btxt}">${a?'✓':'✗'} ${x.label}</span>
+            <span class="case-sim">${sim}% similar</span>
+          </div>
+          <span style="color:var(--muted);font-size:12px" id="arr-${i}">▼</span>
+        </div>
+        <div class="case-body" id="body-${i}" style="border-top:1px solid ${bdr}">${snip}<span style="color:#d1d5db">...</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderRules(rules){
+    const card=document.getElementById('rulesCard');
+    const c=document.getElementById('rulesContainer');
+    if(!rules||rules.length===0){card.style.display='none';return;}
+    card.style.display='block';
+    c.innerHTML=rules.map(r=>{
+      const isAcc=r.direction==='accepted';
+      const dotColor=isAcc?'#16a34a':'#dc2626';
+      return `<div class="rule-item">
+        <span class="rule-dir" style="background:${dotColor}"></span>
+        <span class="rule-name">${r.rule}</span>
+        <span class="rule-note">${r.note}</span>
+        <span class="rule-weight" style="color:${isAcc?'#166534':'#991b1b'}">${isAcc?'+':'-'}${(r.weight*100).toFixed(0)}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  function toggleCase(i){
+    const b=document.getElementById('body-'+i);
+    const a=document.getElementById('arr-'+i);
+    const open=b.style.display==='block';
+    b.style.display=open?'none':'block';
+    a.textContent=open?'▼':'▲';
+  }
+
+  // ── SIMULATOR ──
+  function initSimulator(verdict,confidence){
+    document.getElementById('simChat').innerHTML='';
+    document.getElementById('roundCounter').textContent='Round 1 — Make your first argument';
+    updateTracker(verdict,confidence);
+    addChatMsg('ai',
+      `I have predicted this case will be <strong>${verdict}</strong> with ${(confidence*100).toFixed(1)}% confidence based on the case text, SHAP analysis, legal rules, and similar past cases.<br><br>
+      You may now challenge this prediction. Present your legal arguments — citing specific evidence, legal provisions, constitutional rights, or procedural issues — and I will respond with counter-arguments based on Indian law and precedent.`,
+      verdict,confidence,null
+    );
+  }
+
+  function updateTracker(verdict,confidence){
+    const fill=document.getElementById('trackFill');
+    const tv=document.getElementById('trackVerdict');
+    const isAcc=verdict==='ACCEPTED';
+    const pct=(confidence*100).toFixed(1);
+    const barPct=isAcc ? Math.min(50+confidence*50,100) : Math.max(50-confidence*50,0);
+    fill.style.width=barPct+'%';
+    fill.style.background=isAcc?'#16a34a':'#dc2626';
+    tv.innerHTML=`Current prediction: <strong style="color:${isAcc?'#166534':'#991b1b'}">${verdict}</strong> · Confidence: ${pct}%`;
+  }
+
+  function addChatMsg(role,text,verdict,confidence,category){
+    const chat=document.getElementById('simChat');
+    const isAI=role==='ai';
+    const pill=verdict?`<span class="verdict-pill ${verdict==='ACCEPTED'?'acc':'rej'}">${verdict} ${(confidence*100).toFixed(1)}%</span>`:'';
+    const catTag=category?`<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">Category: ${category}</span>`:'';
+    const div=document.createElement('div');
+    div.className=`chat-msg ${isAI?'ai':'lawyer'}`;
+    div.innerHTML=`
+      <div class="chat-avatar ${isAI?'ai-av':'law-av'}">${isAI?'AI':'L'}</div>
+      <div>
+        <div class="chat-bubble">${text}</div>
+        <div class="chat-meta">${isAI?'LegalPredict AI':'Lawyer'}${pill}${catTag?'&nbsp;·&nbsp;'+catTag:''}</div>
+      </div>`;
+    chat.appendChild(div);
+    chat.scrollTop=chat.scrollHeight;
+  }
+
+  async function submitArgument(){
+    const arg=document.getElementById('argInput').value.trim();
+    if(!arg||arg.length<10){alert('Please enter a more detailed argument.');return;}
+    if(!simState){alert('Please run a prediction first.');return;}
+
+    document.getElementById('argBtn').disabled=true;
+    addChatMsg('lawyer',arg,null,null,null);
+    document.getElementById('argInput').value='';
+
+    try{
+      const res=await fetch('http://localhost:8000/simulate',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          argument          :arg,
+          current_verdict   :simState.verdict,
+          current_confidence:simState.confidence,
+          similar_cases     :simState.similarCases,
+          round_number      :simState.round,
+        }),
+      });
+      if(!res.ok){const e=await res.json();throw new Error(e.detail||'Simulation error');}
+      const data=await res.json();
+
+      simState.verdict    =data.updated_verdict;
+      simState.confidence =data.updated_confidence;
+      simState.round     +=1;
+
+      const changeNote=data.verdict_changed
+        ?`<br><br><strong style="color:${data.updated_verdict==='ACCEPTED'?'#166534':'#991b1b'}">⟳ Verdict changed to ${data.updated_verdict}</strong>`
+        :'';
+
+      addChatMsg(
+        'ai',
+        data.ai_response.replace(/\n/g,'<br>')+changeNote,
+        data.updated_verdict,
+        data.updated_confidence,
+        data.argument_category,
+      );
+
+      updateTracker(data.updated_verdict,data.updated_confidence);
+      document.getElementById('roundCounter').textContent=
+        `Round ${simState.round} — ${simState.round<=3?'Keep arguing to shift the prediction':'Multiple rounds completed'}`;
+
+    }catch(e){
+      addChatMsg('ai',`Error: ${e.message}`,simState.verdict,simState.confidence,null);
+    }finally{
+      document.getElementById('argBtn').disabled=false;
+    }
+  }
+
+  // ── HELPERS ──
+  function setLoading(on){
+    const btn=document.getElementById('predictBtn');
+    btn.disabled=on;
+    btn.innerHTML=on?'<span class="spinner-sm"></span> Analyzing...':'Predict Outcome →';
+    document.getElementById('loading').style.display=on?'flex':'none';
+    if(on)document.getElementById('results').style.display='none';
+  }
+  function showError(msg){const b=document.getElementById('errorBox');b.textContent='⚠ '+msg;b.style.display='block';}
+  function clearError(){document.getElementById('errorBox').style.display='none';}
+  function doReset(){
+    document.getElementById('caseText').value='';
+    document.getElementById('wordCount').textContent='0 words';
+    document.getElementById('pdfReady').style.display='none';
+    document.getElementById('pdfInput').value='';
+    selectedFile=null;simState=null;
+    document.getElementById('results').style.display='none';
+    clearError();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  document.getElementById('argInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&e.ctrlKey){submitArgument();}
+  });
+</script>
+</body>
+</html>
