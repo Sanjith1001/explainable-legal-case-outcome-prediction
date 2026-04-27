@@ -68,23 +68,37 @@ class SimulateRequest(BaseModel):
     current_confidence : float
     similar_cases      : list
     round_number       : int = 1
+    current_rules      : list[dict] = []
+    top_keywords       : list[dict] = []
 
 class SimilarCase(BaseModel):
     text_snippet : str
     label        : str
     similarity   : float
+    semantic_score: float | None = None
+    lexical_score: float | None = None
+    source       : str | None = None
+    source_name  : str | None = None
+    match_reasons: list[str] = []
+    document_url : str | None = None
 
 class PredictResponse(BaseModel):
     verdict            : str
     confidence         : float
+    confidence_band    : str
     label              : int
     top_keywords       : list[dict]
     similar_cases      : list[SimilarCase]
     explanation_text   : str
+    explanation_points : list[str]
+    explanation_sections: dict
+    evidence_points    : list[str]
     triggered_rules    : list[dict]
     uncertainty_flag   : bool
     uncertainty_message: str
     consistency_status : str
+    retrieval_strategy : str
+    retrieval_sources  : list[str]
 
 class SimulateResponse(BaseModel):
     updated_verdict    : str
@@ -93,6 +107,7 @@ class SimulateResponse(BaseModel):
     argument_category  : str
     confidence_shift   : float
     verdict_changed    : bool
+    evidence_points    : list[str]
 
 
 # ── PDF extraction ─────────────────────────────────────────────
@@ -113,6 +128,16 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
 
 
 # ── Rich explanation builder ───────────────────────────────────
+def get_confidence_band(confidence: float) -> str:
+    if confidence >= 0.82:
+        return "high"
+    if confidence >= 0.67:
+        return "moderate"
+    if confidence >= 0.55:
+        return "low"
+    return "uncertain"
+
+
 def build_explanation(verdict, confidence, keywords, similar_cases,
                       raw_prob, triggered_rules):
     pct            = round(confidence * 100, 1)
@@ -132,7 +157,8 @@ def build_explanation(verdict, confidence, keywords, similar_cases,
         if k["direction"] == "supports_accepted": support_kw.append(w)
         else: against_kw.append(w)
 
-    conf_desc = "strong" if pct >= 80 else "moderate" if pct >= 65 else "low"
+    conf_desc = get_confidence_band(confidence)
+    conf_desc_text = "strong" if conf_desc == "high" else conf_desc
 
     if accepted_count == total:
         prec = f"All {total} similar past cases were ACCEPTED."
@@ -169,17 +195,44 @@ def build_explanation(verdict, confidence, keywords, similar_cases,
     prob_note = f"The model assigned {round(raw_prob*100,1)}% probability of acceptance."
 
     if verdict == "ACCEPTED":
-        kw_note = f"Key legal terms supporting this prediction: {', '.join(support_kw[:3])}. " if support_kw else f"Key legal factors: {', '.join(all_kw[:3])}. "
-        return (
-            f"The AI model predicts this case will be ACCEPTED with {conf_desc} confidence ({pct}%). "
-            f"{kw_note}{prob_note} {prec}{rule_note}{contradiction}"
+        kw_note = (
+            f"Key legal terms supporting this prediction: {', '.join(support_kw[:3])}."
+            if support_kw else
+            f"Key legal factors: {', '.join(all_kw[:3])}."
         )
     else:
-        kw_note = f"Key legal terms suggesting rejection: {', '.join(against_kw[:3])}. " if against_kw else f"Key legal factors: {', '.join(all_kw[:3])}. "
-        return (
-            f"The AI model predicts this case will be REJECTED with {conf_desc} confidence ({pct}%). "
-            f"{kw_note}{prob_note} {prec}{rule_note}{contradiction}"
+        kw_note = (
+            f"Key legal terms suggesting rejection: {', '.join(against_kw[:3])}."
+            if against_kw else
+            f"Key legal factors: {', '.join(all_kw[:3])}."
         )
+
+    summary = (
+        f"The AI model predicts this case will be {verdict} with {conf_desc_text} confidence ({pct}%). "
+        f"{kw_note} {prob_note} {prec}{rule_note}{contradiction}"
+    )
+
+    explanation_points = [
+        f"Predicted outcome: {verdict} with {pct}% confidence ({conf_desc} band).",
+        kw_note,
+        prob_note,
+        prec,
+    ]
+    if rule_note:
+        explanation_points.append(rule_note.strip())
+    if contradiction:
+        explanation_points.append(contradiction.strip())
+
+    explanation_sections = {
+        "prediction": f"{verdict} ({pct}% confidence, {conf_desc} band)",
+        "keywords": support_kw[:3] if verdict == "ACCEPTED" else against_kw[:3],
+        "similar_cases_summary": prec,
+        "rules_summary": rule_note.strip(),
+        "contradiction_note": contradiction.strip(),
+        "raw_probability_accepted": round(raw_prob * 100, 1),
+    }
+
+    return summary, explanation_points, explanation_sections
 
 
 # ── Core prediction pipeline (6 layers) ───────────────────────
@@ -223,6 +276,7 @@ def run_prediction(text: str):
         confidence = max(float(proba[1]), 0.55)
 
     confidence = min(confidence, 0.92)
+    confidence_band = get_confidence_band(confidence)
 
     if sim_accepted == sim_rejected:
         consistency_status = "Mixed — similar cases show equal split"
@@ -244,22 +298,53 @@ def run_prediction(text: str):
 
     verdict = "ACCEPTED" if label == 1 else "REJECTED"
 
-    explanation_text = build_explanation(
+    explanation_text, explanation_points, explanation_sections = build_explanation(
         verdict, confidence, top_keywords,
         similar_cases, raw_prob_accepted, triggered_rules
     )
 
+    evidence_points = []
+    if top_keywords:
+        evidence_points.append(
+            "Top model terms: " + ", ".join(k["word"] for k in top_keywords[:3])
+        )
+    if similar_cases:
+        local_cases = [c for c in similar_cases if c.get("source") == "local_corpus"]
+        if local_cases:
+            evidence_points.append(
+                f"{min(len(local_cases), 5)} retrieved local precedents contributed to the explanation."
+            )
+        for case in local_cases[:2]:
+            reasons = case.get("match_reasons") or []
+            if reasons:
+                evidence_points.append(f"Retrieved case signal: {reasons[0]}.")
+    if triggered_rules:
+        evidence_points.append(
+            "Triggered rules: " + ", ".join(rule["rule"] for rule in triggered_rules[:3])
+        )
+
+    retrieval_sources = sorted({
+        case.get("source_name") or case.get("source") or "Unknown source"
+        for case in similar_cases
+    })
+
     return PredictResponse(
         verdict             = verdict,
         confidence          = round(confidence, 4),
+        confidence_band     = confidence_band,
         label               = label,
         top_keywords        = top_keywords,
         similar_cases       = similar_cases,
         explanation_text    = explanation_text,
+        explanation_points  = explanation_points,
+        explanation_sections= explanation_sections,
+        evidence_points     = evidence_points,
         triggered_rules     = triggered_rules,
         uncertainty_flag    = uncertainty_flag,
         uncertainty_message = uncertainty_message,
         consistency_status  = consistency_status,
+        retrieval_strategy  = "hybrid_semantic_lexical_with_optional_external_enrichment",
+        retrieval_sources   = retrieval_sources,
     )
 
 
@@ -311,6 +396,8 @@ def simulate(request: SimulateRequest):
             current_confidence = request.current_confidence,
             similar_cases      = request.similar_cases,
             round_number       = request.round_number,
+            current_rules      = request.current_rules,
+            top_keywords       = request.top_keywords,
         )
         return SimulateResponse(**result)
     except HTTPException:

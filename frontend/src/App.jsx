@@ -6,6 +6,7 @@ import VerdictCard from './components/VerdictCard';
 import KeywordsPanel from './components/KeywordsPanel';
 import SimilarCases from './components/SimilarCases';
 import LoadingSpinner from './components/LoadingSpinner';
+import SimulatorPanel from './components/SimulatorPanel';
 
 export default function App() {
   const [caseText, setCaseText] = useState('');
@@ -121,7 +122,12 @@ export default function App() {
             <VerdictCard
               verdict={result.verdict}
               confidence={result.confidence}
+              confidenceBand={result.confidence_band}
               explanationText={result.explanation_text}
+              explanationPoints={result.explanation_points}
+              evidencePoints={result.evidence_points}
+              consistencyStatus={result.consistency_status}
+              uncertaintyMessage={result.uncertainty_flag ? result.uncertainty_message : ''}
             />
 
             <div style={{
@@ -133,6 +139,8 @@ export default function App() {
               <KeywordsPanel keywords={result.top_keywords} />
               <SimilarCases  cases={result.similar_cases} />
             </div>
+
+            <SimulatorPanel result={result} />
 
             <div style={{ textAlign: 'center', marginTop: '32px' }}>
               <button

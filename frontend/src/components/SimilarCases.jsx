@@ -1,14 +1,31 @@
 import React, { useState } from 'react';
 
+function ScoreChip({ children }) {
+  return (
+    <span style={{
+      padding: '4px 8px',
+      borderRadius: '999px',
+      fontSize: '10px',
+      fontFamily: 'DM Mono, monospace',
+      background: '#f7f5f0',
+      color: '#9ca3af',
+    }}>
+      {children}
+    </span>
+  );
+}
+
 function CaseCard({ caseData, index }) {
   const [open, setOpen] = useState(false);
-  const isAccepted      = caseData.label === 'ACCEPTED';
+  const isAccepted = caseData.label === 'ACCEPTED';
   const similarity = Number(caseData?.similarity);
   const similarityText = Number.isFinite(similarity) ? `${(similarity * 100).toFixed(1)}% similar` : 'N/A';
 
   const theme = isAccepted
     ? { bg: '#f0fdf4', border: '#86efac', badgeBg: '#dcfce7', badgeText: '#166534' }
-    : { bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeText: '#991b1b' };
+    : caseData.label === 'REJECTED'
+      ? { bg: '#fef2f2', border: '#fca5a5', badgeBg: '#fee2e2', badgeText: '#991b1b' }
+      : { bg: '#f7f5f0', border: '#d1cfc9', badgeBg: '#f3f4f6', badgeText: '#6b7280' };
 
   return (
     <div style={{ border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden' }}>
@@ -23,7 +40,7 @@ function CaseCard({ caseData, index }) {
           cursor: 'pointer',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <span style={{
             width: '28px',
             height: '28px',
@@ -49,7 +66,7 @@ function CaseCard({ caseData, index }) {
             background: theme.badgeBg,
             color: theme.badgeText,
           }}>
-            {isAccepted ? '✓' : '✗'} {caseData.label}
+            {isAccepted ? 'ACCEPTED' : caseData.label === 'REJECTED' ? 'REJECTED' : caseData.label}
           </span>
 
           <span style={{
@@ -77,10 +94,37 @@ function CaseCard({ caseData, index }) {
             fontSize: '12px',
             color: '#6b7280',
             lineHeight: '1.7',
+            marginBottom: caseData.match_reasons?.length ? '10px' : '0',
           }}>
             {caseData.text_snippet}
             <span style={{ color: '#d1d5db' }}>...</span>
           </p>
+
+          {caseData.match_reasons?.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+              {caseData.match_reasons.map((reason, reasonIndex) => (
+                <span key={reasonIndex} style={{
+                  fontSize: '11px',
+                  color: '#9ca3af',
+                  fontFamily: 'DM Mono, monospace',
+                }}>
+                  {reason}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {(caseData.source_name || caseData.semantic_score != null || caseData.lexical_score != null) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {caseData.source_name && <ScoreChip>{caseData.source_name}</ScoreChip>}
+              {caseData.semantic_score != null && (
+                <ScoreChip>semantic {Number(caseData.semantic_score).toFixed(3)}</ScoreChip>
+              )}
+              {caseData.lexical_score != null && (
+                <ScoreChip>lexical {Number(caseData.lexical_score).toFixed(3)}</ScoreChip>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -91,7 +135,7 @@ export default function SimilarCases({ cases }) {
   if (!cases || cases.length === 0) return null;
 
   const accepted = cases.filter((c) => c.label === 'ACCEPTED').length;
-  const rejected = cases.length - accepted;
+  const rejected = cases.filter((c) => c.label === 'REJECTED').length;
 
   return (
     <div className="fade-up-2" style={{
@@ -101,7 +145,7 @@ export default function SimilarCases({ cases }) {
       padding: '24px',
       boxShadow: '0 2px 12px rgba(15,17,23,0.06)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', gap: '16px' }}>
         <div>
           <h3 style={{
             fontFamily: 'Playfair Display, serif',
@@ -117,11 +161,11 @@ export default function SimilarCases({ cases }) {
             fontSize: '11px',
             color: '#9ca3af',
           }}>
-            InLegalBERT semantic search · FAISS index
+            Hybrid retrieval · dense semantic + lexical overlap
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <span style={{
             padding: '4px 10px',
             borderRadius: '999px',
